@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import base64
@@ -27,6 +27,8 @@ import json
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 import base64
 import os
+import requests
+import httpx
 os.environ['OPENAI_API_KEY'] = 'sk-a07Vs0y8Wxq2CY-NuI7ztLwqWc2C8QIKM6QNfznmxNT3BlbkFJlDQ4-KJBy3aFkEPUZfOS0Mm_EeeE2oTjjQPpLGEyUA'
 
 import logging
@@ -156,7 +158,9 @@ def pdf_to_images(pdf_content: bytes, output_dir: str = output_dir) -> List[str]
 def is_pdf(file: UploadFile) -> bool:
     return file.content_type == "application/pdf"
 
-
+# Helper function to get http_client session
+async def get_http_client():
+    return requests.Session()
 
 # Endpoint to upload the file (PDF or image) and get structured data
 @app.post("/upload-prescription/")
@@ -184,7 +188,22 @@ async def upload_prescription(file: UploadFile = File(...)):
 
         # Call the function to extract text from each image and compile the results
         extracted_texts = [extract_text_from_image(img_base64) for img_base64 in encoded_images]
-
+        url = "http://ec2-13-235-87-37.ap-south-1.compute.amazonaws.com:5000/extracted-prescription"
+        http_client = httpx.AsyncClient()
+        for text in extracted_texts:
+            text["patient_id"] = (
+                "patient_id"  # TODO this needs to be an actual id, and not something hardcoded
+            )
+            response = requests.post(
+                "http://ec2-13-235-87-37.ap-south-1.compute.amazonaws.com:5000/extracted-prescription", json=text
+            )
+            if response.status_code != 200:
+                content = await response.text()
+                logger.error(f"Error processing file: {content}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Error processing extracted prescription: {content}"
+                )
         # Return structured data for each page/image
         return {"pages": extracted_texts}
 
