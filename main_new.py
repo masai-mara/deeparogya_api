@@ -33,6 +33,10 @@ os.environ['OPENAI_API_KEY'] = 'sk-a07Vs0y8Wxq2CY-NuI7ztLwqWc2C8QIKM6QNfznmxNT3B
 
 import logging
 
+from fastapi.middleware.cors import CORSMiddleware
+
+
+
 
 # Initialize logger
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
