@@ -201,15 +201,17 @@ async def upload_prescription(file: UploadFile = File(...)):
             response = requests.post(
                 "http://ec2-13-235-87-37.ap-south-1.compute.amazonaws.com:5000/extracted-prescription", json=text
             )
-            if response.status_code != 200:
+            if response.status_code != 201:
                 content = await response.text()
                 logger.error(f"Error processing file: {content}")
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Error processing extracted prescription: {content}"
                 )
+            data = json.loads(response.content.decode('utf-8'))
+            prescription_extraction_id = data['prescription_extraction_id']
         # Return structured data for each page/image
-        return {"pages": extracted_texts}
+        return {"pages": extracted_texts, "prescription_extraction_id": prescription_extraction_id}
 
     except Exception as e:
         logger.error(f"Error processing file: {e}")
