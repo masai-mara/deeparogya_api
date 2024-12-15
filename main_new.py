@@ -1,5 +1,14 @@
 import uvicorn
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status, Form, Request
+from fastapi import (
+    FastAPI,
+    UploadFile,
+    File,
+    HTTPException,
+    Depends,
+    status,
+    Form,
+    Request,
+)
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import base64
@@ -45,15 +54,11 @@ os.environ[
 import logging
 
 
-
-
-
 # Initialize logger
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
-
 
 
 # Define the Pydantic models
@@ -115,7 +120,7 @@ class PrescriptionMedical(BaseModel):
 app = FastAPI()
 
 allowed_origins = [
-    "*", #Make it functional on d-day
+    "*",  # Make it functional on d-day
 ]
 
 app.add_middleware(
@@ -125,7 +130,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS", "PUT"],  # Allowed HTTP methods
     allow_headers=["Authorization", "Content-Type"],  # Allowed headers
 )
-
 
 
 # # Define a fixed output directory for temporary images
@@ -191,7 +195,6 @@ async def get_http_client():
     return requests.Session()
 
 
-
 # Endpoint to upload the file (PDF or image) and get structured data
 @app.post("/upload-prescription/")
 async def upload_prescription(doctor_id: str = Form(...), file: UploadFile = File(...)):
@@ -220,56 +223,47 @@ async def upload_prescription(doctor_id: str = Form(...), file: UploadFile = Fil
         extracted_texts = [
             extract_text_from_image(img_base64) for img_base64 in encoded_images
         ]
-       
-        await insertExtractedData(extracted_texts,doctor_id)
-        
-        return JSONResponse(
-            {
-              "msg":"success",
-              "status_code":200,
-              "pages": extracted_texts
-            }
-        )
 
+        await insertExtractedData(extracted_texts, doctor_id)
+
+        return JSONResponse(
+            {"msg": "success", "status_code": 200, "pages": extracted_texts}
+        )
 
     except Exception as e:
         logger.error(f"Error processing file: {e}")
         raise HTTPException(status_code=500, detail=f"Error processing file: {e}")
-        
-        
+
+
 class EditPrescriptionModel(BaseModel):
     data: dict
-   
+
+
 @app.post("/edit-prescription/")
 async def edit_prescription(request: EditPrescriptionModel):
     try:
-    
-     
-       if (request.data["prescription_id"] and len(request.data["prescription_id"])>0):
-           await editPrescription(request.data)
-           return JSONResponse(
-              content={
-                  "msg": "success",
-                  "status_code": 200,
-                  "data":  request.data,
-              }
-          )
-       else:
-         raise HTTPException(status_code=401, detail="prescription_id is mandatory")
+
+        if request.data["prescription_id"] and len(request.data["prescription_id"]) > 0:
+            await editPrescription(request.data)
+            return JSONResponse(
+                content={
+                    "msg": "success",
+                    "status_code": 200,
+                    "data": request.data,
+                }
+            )
+        else:
+            raise HTTPException(status_code=401, detail="prescription_id is mandatory")
     except Exception as e:
         logger.error(f"Error processing file: {e}")
         raise HTTPException(status_code=500, detail="Error processing the form data.")
 
 
-        
-
-
 @app.get("/list-extracted-prescriptions")
 async def get_extracted_prescriptions(doctor_id: str):
     try:
-       
-      
-        list_of_extracted_prescriptions_json = await  getPrescriptionList(doctor_id)
+
+        list_of_extracted_prescriptions_json = await getPrescriptionList(doctor_id)
         return JSONResponse(
             content={
                 "msg": "list of all extracted prescriptions",
@@ -280,14 +274,14 @@ async def get_extracted_prescriptions(doctor_id: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-        
-        
+
+
 @app.get("/get-prescription")
 async def get_prescription(prescription_id: str):
     try:
-       
-        prescription_json = await  getPrescription(prescription_id)
-        
+
+        prescription_json = await getPrescription(prescription_id)
+
         return JSONResponse(
             content={
                 "msg": "successfully fetched prescription",
@@ -298,8 +292,6 @@ async def get_prescription(prescription_id: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
 
 
 # Function to simulate the GPT-based text extraction
@@ -361,9 +353,6 @@ def extract_text_from_image(image_base64: str) -> dict:
     except Exception as e:
         logger.error(f"Error during text extraction: {e}")
         raise e
-        
-        
-        
 
 
 if __name__ == "__main__":

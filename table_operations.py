@@ -18,6 +18,7 @@ DATABASE_CONFIG = {
     "db": "deeparogya_development",
 }
 
+
 def get_conn():
     return pymysql.Connection(
         host=DATABASE_CONFIG["host"],
@@ -25,8 +26,8 @@ def get_conn():
         passwd=DATABASE_CONFIG["password"],
         db=DATABASE_CONFIG["db"],
     )
-    
-    
+
+
 def rows_to_json_transform(rows, fields):
     json_data = []
     for row in rows:
@@ -36,53 +37,52 @@ def rows_to_json_transform(rows, fields):
                 row_dict[key] = value.isoformat()
         json_data.append(row_dict)
     return json_data
-    
+
 
 def row_to_json_transform_single(row, schema_fields):
     result = {}
     for key, value in zip(schema_fields, row):
-        if isinstance(value, datetime):  
-            result[key] = value.isoformat()  
+        if isinstance(value, datetime):
+            result[key] = value.isoformat()
         else:
-            result[key] = value  
+            result[key] = value
     return result
-
 
 
 db = get_conn()
 
- 
-async def insertExtractedData(extracted_texts,doctor_id):
+
+async def insertExtractedData(extracted_texts, doctor_id):
     cursor = db.cursor()
     for text in extracted_texts:
-        patient_id =  "gcs_id" # TODO this needs to be an actual id, and not something hardcoded
-  
+        patient_id = (
+            "gcs_id"  # TODO this needs to be an actual id, and not something hardcoded
+        )
+
         prescription_extraction_id = uuid.uuid4()
         time_now_str = str(datetime.now())
         cursor.execute(
-        "INSERT INTO ExtractedPrescription VALUES (%s, % s, % s, % s, % s, % s, % s, % s, %s, %s)",
-        (
-            patient_id,
-            json.dumps(text["patient_info"]),
-            json.dumps(text["diagnosis"]),
-            json.dumps(text["drugs"]),
-            json.dumps(text["diet_to_follow"]),
-            json.dumps(text["history"]),
-            json.dumps(text["signature"]),
-            time_now_str,
-            prescription_extraction_id,
-            doctor_id,
-        ),
+            "INSERT INTO ExtractedPrescription VALUES (%s, % s, % s, % s, % s, % s, % s, % s, %s, %s)",
+            (
+                patient_id,
+                json.dumps(text["patient_info"]),
+                json.dumps(text["diagnosis"]),
+                json.dumps(text["drugs"]),
+                json.dumps(text["diet_to_follow"]),
+                json.dumps(text["history"]),
+                json.dumps(text["signature"]),
+                time_now_str,
+                prescription_extraction_id,
+                doctor_id,
+            ),
         )
     cursor.close()
     db.commit()
-    
+
 
 async def getPrescriptionList(id):
     cursor = db.cursor()
-    cursor.execute(
-            "SELECT * FROM ExtractedPrescription where doctor_id = %s", (id,)
-        )
+    cursor.execute("SELECT * FROM ExtractedPrescription where doctor_id = %s", (id,))
     extracted_prescriptions = cursor.fetchall()
     cursor.close()
     db.commit()
@@ -103,18 +103,18 @@ async def getPrescriptionList(id):
         extracted_prescriptions, extracted_prescription_schema_fields
     )
     return list_of_extracted_prescriptions_json
-    
-    
+
 
 async def getPrescription(prescription_id):
     cursor = db.cursor()
-    
+
     try:
         cursor.execute(
-            "SELECT * FROM ExtractedPrescription WHERE prescription_extraction_id = %s", (prescription_id,)
+            "SELECT * FROM ExtractedPrescription WHERE prescription_extraction_id = %s",
+            (prescription_id,),
         )
-        extracted_prescription = cursor.fetchone() 
-        
+        extracted_prescription = cursor.fetchone()
+
         if not extracted_prescription:
             return []
 
@@ -134,7 +134,7 @@ async def getPrescription(prescription_id):
         prescription_json = row_to_json_transform_single(
             extracted_prescription, extracted_prescription_schema_fields
         )
-        
+
         return prescription_json
 
     except Exception as e:
@@ -142,8 +142,6 @@ async def getPrescription(prescription_id):
     finally:
         cursor.close()
         db.commit()
-
-    
 
 
 async def editPrescription(data):
@@ -173,14 +171,14 @@ async def editPrescription(data):
                 json.dumps(data["history"]),
                 json.dumps(data["signature"]),
                 data["prescription_id"],
-            )
+            ),
         )
 
         db.commit()
 
     except Exception as e:
-        db.rollback() 
-        print(f"Error: {e}")  
+        db.rollback()
+        print(f"Error: {e}")
         raise e
 
     finally:
