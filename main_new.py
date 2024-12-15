@@ -1,10 +1,11 @@
 import uvicorn
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status, Form, Request
 from pydantic import BaseModel, Field
 from typing import Optional, List
 import base64
 import openai
 import json
+from datetime import datetime
 import os
 import fitz  # PyMuPDF
 import openai
@@ -18,8 +19,9 @@ from langchain.prompts import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
+from fastapi.responses import JSONResponse
 import uuid  # Import for unique identifiers
-
+import pymysql
 import time
 from langchain.output_parsers import PydanticOutputParser
 import pandas as pd
@@ -29,6 +31,12 @@ import base64
 import os
 import requests
 import httpx
+from table_operations import insertExtractedData
+from table_operations import getPrescriptionList
+from table_operations import getPrescription
+from table_operations import editPrescription
+from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 os.environ[
     "OPENAI_API_KEY"
@@ -36,7 +44,8 @@ os.environ[
 
 import logging
 
-from fastapi.middleware.cors import CORSMiddleware
+
+
 
 
 # Initialize logger
@@ -44,6 +53,8 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+
 
 # Define the Pydantic models
 
@@ -102,6 +113,19 @@ class PrescriptionMedical(BaseModel):
 
 # Initialize FastAPI app
 app = FastAPI()
+
+allowed_origins = [
+    "*", #Make it functional on d-day
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,  # Allows CORS for these origins
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS", "PUT"],  # Allowed HTTP methods
+    allow_headers=["Authorization", "Content-Type"],  # Allowed headers
+)
+
 
 
 # # Define a fixed output directory for temporary images
@@ -167,6 +191,7 @@ async def get_http_client():
     return requests.Session()
 
 
+
 # Endpoint to upload the file (PDF or image) and get structured data
 @app.post("/upload-prescription/")
 async def upload_prescription(doctor_id: str = Form(...), file: UploadFile = File(...)):
@@ -195,35 +220,86 @@ async def upload_prescription(doctor_id: str = Form(...), file: UploadFile = Fil
         extracted_texts = [
             extract_text_from_image(img_base64) for img_base64 in encoded_images
         ]
-        url = "http://ec2-13-235-87-37.ap-south-1.compute.amazonaws.com:5000/extracted-prescription"
-        http_client = httpx.AsyncClient()
-        for text in extracted_texts:
-            text[
-                "patient_id"
-            ] = "patient_id"  # TODO this needs to be an actual id, and not something hardcoded
-            text["doctor_id"] = doctor_id
-            response = requests.post(
-                "http://ec2-13-235-87-37.ap-south-1.compute.amazonaws.com:5000/extracted-prescription",
-                json=text,
-            )
-            if response.status_code != 201:
-                content = await response.text()
-                logger.error(f"Error processing file: {content}")
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Error processing extracted prescription: {content}",
-                )
-            data = json.loads(response.content.decode("utf-8"))
-            prescription_extraction_id = data["prescription_extraction_id"]
-        # Return structured data for each page/image
-        return {
-            "pages": extracted_texts,
-            "prescription_extraction_id": prescription_extraction_id,
-        }
+       
+        await insertExtractedData(extracted_texts,doctor_id)
+        
+        return JSONResponse(
+            {
+              "msg":"success",
+              "status_code":200,
+              "pages": extracted_texts
+            }
+        )
+
 
     except Exception as e:
         logger.error(f"Error processing file: {e}")
         raise HTTPException(status_code=500, detail=f"Error processing file: {e}")
+        
+        
+class EditPrescriptionModel(BaseModel):
+    data: dict
+   
+@app.post("/edit-prescription/")
+async def edit_prescription(request: EditPrescriptionModel):
+    try:
+    
+     
+       if (request.data["prescription_id"] and len(request.data["prescription_id"])>0):
+           await editPrescription(request.data)
+           return JSONResponse(
+              content={
+                  "msg": "success",
+                  "status_code": 200,
+                  "data":  request.data,
+              }
+          )
+       else:
+         raise HTTPException(status_code=401, detail="prescription_id is mandatory")
+    except Exception as e:
+        logger.error(f"Error processing file: {e}")
+        raise HTTPException(status_code=500, detail="Error processing the form data.")
+
+
+        
+
+
+@app.get("/list-extracted-prescriptions")
+async def get_extracted_prescriptions(doctor_id: str):
+    try:
+       
+      
+        list_of_extracted_prescriptions_json = await  getPrescriptionList(doctor_id)
+        return JSONResponse(
+            content={
+                "msg": "list of all extracted prescriptions",
+                "extracted_prescriptions": list_of_extracted_prescriptions_json,
+            },
+            status_code=200,
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
+        
+@app.get("/get-prescription")
+async def get_prescription(prescription_id: str):
+    try:
+       
+        prescription_json = await  getPrescription(prescription_id)
+        
+        return JSONResponse(
+            content={
+                "msg": "successfully fetched prescription",
+                "prescription": prescription_json,
+            },
+            status_code=200,
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 
 # Function to simulate the GPT-based text extraction
@@ -285,6 +361,9 @@ def extract_text_from_image(image_base64: str) -> dict:
     except Exception as e:
         logger.error(f"Error during text extraction: {e}")
         raise e
+        
+        
+        
 
 
 if __name__ == "__main__":
