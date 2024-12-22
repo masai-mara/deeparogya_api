@@ -323,7 +323,7 @@ def extract_text_from_image(image_base64: str) -> dict:
             "You are a medical expert AI chatbot having a conversation with a human. Your task is to provide accurate "
             "and helpful answers based on the extracted parts of a medical health report."
         )
-        postamble =  "Do not include any explaination Only include th only include  actual extracted data. Discard placeholder, dummy, or irrelevant information."
+        postamble = "Do not include any explaination Only include th only include  actual extracted data. Discard placeholder, dummy, or irrelevant information."
 
         # Formatting the prompt
         chat_prompt = PromptTemplate(
