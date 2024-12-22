@@ -44,6 +44,7 @@ from table_operations import insertExtractedData
 from table_operations import getPrescriptionList
 from table_operations import getPrescription
 from table_operations import editPrescription
+from table_operations import deletePrescription
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -292,6 +293,22 @@ async def get_prescription(prescription_id: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/delete-prescription/")
+async def delete_prescription(prescription_id: str):
+    try:
+        if not prescription_id:
+            raise HTTPException(status_code=400, detail="prescription_id is required")
+
+        await deletePrescription(prescription_id)
+
+        return JSONResponse(
+            content={"msg": "Prescription deleted successfully", "status_code": 200}
+        )
+    except Exception as e:
+        logger.error(f"Error deleting prescription: {e}")
+        raise HTTPException(status_code=500, detail="Error processing the request.")
 
 
 # Function to simulate the GPT-based text extraction

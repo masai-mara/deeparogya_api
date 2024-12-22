@@ -183,3 +183,30 @@ async def editPrescription(data):
 
     finally:
         cursor.close()
+
+
+async def deletePrescription(prescription_id):
+    """
+    Deletes a prescription from the database.
+    Args:
+        prescription_id: The ID of the prescription to delete.
+    Raises:
+        Exception: If an error occurs during the deletion process.
+    """
+
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            """
+            DELETE FROM ExtractedPrescription
+            WHERE prescription_extraction_id = %s
+            """,
+            (prescription_id,),
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error deleting prescription: {e}")
+        raise e
+    finally:
+        cursor.close()
