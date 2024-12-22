@@ -303,7 +303,7 @@ def extract_text_from_image(image_base64: str) -> dict:
             {
                 "role": "user",
                 "content": [
-                    """These is a image of medical prescription written by doctor. Get all the text from the image.""",
+                    """ This is an image of a medical prescription written by a doctor. Extract all text and interpret it, correcting any errors or unclear parts using medical knowledge. Ensure all medication names, dosages, and instructions are accurate.""",
                     *map(lambda x: {"image": x, "resize": 768}, [image_base64]),
                 ],
             },
@@ -312,7 +312,7 @@ def extract_text_from_image(image_base64: str) -> dict:
         params = {
             "model": "gpt-4o",  # Adjust this as needed
             "messages": PROMPT_MESSAGES,
-            "max_tokens": 500,
+            "max_tokens": 3500,
         }
 
         result = openai.chat.completions.create(**params)
@@ -323,7 +323,7 @@ def extract_text_from_image(image_base64: str) -> dict:
             "You are a medical expert AI chatbot having a conversation with a human. Your task is to provide accurate "
             "and helpful answers based on the extracted parts of a medical health report."
         )
-        postamble = "Do not include any explanation in the reply. Only include the extracted information in the reply."
+        postamble =  "Do not include any explaination Only include th only include  actual extracted data. Discard placeholder, dummy, or irrelevant information."
 
         # Formatting the prompt
         chat_prompt = PromptTemplate(
