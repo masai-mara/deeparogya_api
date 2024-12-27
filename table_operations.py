@@ -210,3 +210,30 @@ async def deletePrescription(prescription_id):
         raise e
     finally:
         cursor.close()
+
+
+async def signupUser(data):
+    """
+    Sings up a user.
+    Args:
+        data: The object containing name, email, phone, password of the user to signup.
+    Raises:
+        Exception: If an error occurs during the singup process.
+    """
+    name = data["name"]
+    email = data["email"]
+    phone = data["phone"]
+    hashed_password = data["hashed_password"]
+    dated = data["dated"]
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO Signup (name, email, phone, password, dated) VALUES (%s, %s, %s, %s, %s)",
+            (name, email, phone, hashed_password, dated),
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise (e)
+    finally:
+        cursor.close()

@@ -45,8 +45,10 @@ from table_operations import getPrescriptionList
 from table_operations import getPrescription
 from table_operations import editPrescription
 from table_operations import deletePrescription
+from table_operations import signupUser
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from werkzeug.security import generate_password_hash
 
 os.environ[
     "OPENAI_API_KEY"
@@ -370,6 +372,30 @@ def extract_text_from_image(image_base64: str) -> dict:
     except Exception as e:
         logger.error(f"Error during text extraction: {e}")
         raise e
+
+
+@app.post("/signup")
+async def signup(data: dict):
+    try:
+        if not all(
+            [
+                data.get("name"),
+                data.get("email"),
+                data.get("phone"),
+                data.get("password"),
+            ]
+        ):
+            raise HTTPException(status_code=400, detail="All data is required")
+        password = data["password"]
+        data["hashed_password"] = generate_password_hash(password)
+        data["dated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        await signupUser(data)
+        return JSONResponse(
+            content={"msg": "User signedup successfully", "status_code": 200}
+        )
+    except Exception as e:
+        logger.error(f"Error signing up the user: {e}")
+        raise HTTPException(status_code=500, detail="Error processing the request.")
 
 
 if __name__ == "__main__":
