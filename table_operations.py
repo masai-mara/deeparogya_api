@@ -237,3 +237,45 @@ async def signupUser(data):
         raise (e)
     finally:
         cursor.close()
+
+
+async def getAccountPassword(email: str) -> str:
+    """
+    Returns password of a user.
+    Args:
+        email: Registered email of the user at signup.
+    Raises:
+        Exception: If an error occurs during the get password process.
+    """
+    cursor = db.cursor()
+    try:
+        cursor.execute("SELECT password FROM Signup WHERE email = %s", (email,))
+        account = cursor.fetchone()
+        stored_password = account[0]
+        return stored_password
+    except Exception as e:
+        raise (e)
+    finally:
+        cursor.close()
+
+
+async def updateSignInTime(email: str):
+    """
+    Updates last login time for a user.
+    Args:
+        email: Registered email of the user at signup.
+    Raises:
+        Exception: If an error occurs during the update lastlogin time process.
+    """
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "UPDATE Signup SET last_login_timestamp = NOW() WHERE email = %s", (email,)
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating last login time: {e}")
+        raise (e)
+    finally:
+        cursor.close()

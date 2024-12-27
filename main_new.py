@@ -46,9 +46,11 @@ from table_operations import getPrescription
 from table_operations import editPrescription
 from table_operations import deletePrescription
 from table_operations import signupUser
+from table_operations import updateSignInTime
+from table_operations import getAccountPassword
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 os.environ[
     "OPENAI_API_KEY"
@@ -395,6 +397,24 @@ async def signup(data: dict):
         )
     except Exception as e:
         logger.error(f"Error signing up the user: {e}")
+        raise HTTPException(status_code=500, detail="Error processing the request.")
+
+
+@app.post("/login")
+async def signup(data: dict):
+    try:
+        if not all([data.get("email"), data.get("password")]):
+            raise HTTPException(status_code=400, detail="All data is required")
+        email = data["email"]
+        password = data["password"]
+        stored_password = await getAccountPassword(email)
+        if check_password_hash(stored_password, password):
+            await updateSignInTime(email)
+            return JSONResponse(
+                content={"msg": "User signedin successfully", "status_code": 200}
+            )
+    except Exception as e:
+        logger.error(f"Error signing in the user: {e}")
         raise HTTPException(status_code=500, detail="Error processing the request.")
 
 
