@@ -279,3 +279,26 @@ async def updateSignInTime(email: str):
         raise (e)
     finally:
         cursor.close()
+
+
+async def addMessage(data: dict):
+    """
+    Updates last login time for a user.
+    Args:
+        data: Registered email of the user at signup.
+    Raises:
+        Exception: If an error occurs during the add message process.
+    """
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO Message (name, email, subject, message) VALUES (%s, %s, %s, %s)",
+            (data["name"], data["email"], data["subject"], data["message"]),
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error adding the message: {e}")
+        raise (e)
+    finally:
+        cursor.close()

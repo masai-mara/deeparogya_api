@@ -48,6 +48,7 @@ from table_operations import deletePrescription
 from table_operations import signupUser
 from table_operations import updateSignInTime
 from table_operations import getAccountPassword
+from table_operations import addMessage
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -413,6 +414,27 @@ async def login(data: dict):
             return JSONResponse(
                 content={"msg": "User signedin successfully", "status_code": 200}
             )
+    except Exception as e:
+        logger.error(f"Error signing in the user: {e}")
+        raise HTTPException(status_code=500, detail="Error processing the request.")
+
+
+@app.post("/contact")
+async def contact(data: dict):
+    try:
+        if not all(
+            [
+                data.get("email"),
+                data.get("name"),
+                data.get("subject"),
+                data.get("message"),
+            ]
+        ):
+            raise HTTPException(status_code=400, detail="All data is required")
+        await addMessage(data)
+        return JSONResponse(
+            content={"msg": "Message added successfully", "status_code": 200}
+        )
     except Exception as e:
         logger.error(f"Error signing in the user: {e}")
         raise HTTPException(status_code=500, detail="Error processing the request.")
