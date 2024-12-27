@@ -401,7 +401,7 @@ async def signup(data: dict):
 
 
 @app.post("/login")
-async def signup(data: dict):
+async def login(data: dict):
     try:
         if not all([data.get("email"), data.get("password")]):
             raise HTTPException(status_code=400, detail="All data is required")
