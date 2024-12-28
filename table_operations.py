@@ -321,3 +321,43 @@ async def getUserDetails(email: str) -> dict:
         raise (e)
     finally:
         cursor.close()
+
+
+async def addUser(data: dict):
+    """
+    Adds a user.
+    Args:
+        data: Details of the user at signup.
+    Raises:
+        Exception: If an error occurs during the add user process.
+    """
+    name = data["name"]
+    email = data["email"]
+    phone = data["phone"]
+    hashed_password = data["hashed_password"]
+    cursor = db.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO User (hospital_id, id, email_id, phone_number, password, registration_timestamp, "
+            "last_login_timestamp, active_session_token, active, session_ends, name) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                None,
+                uuid.uuid4(),
+                email,
+                phone,
+                hashed_password,
+                datetime.now(),
+                None,
+                None,
+                1,
+                None,
+                name,
+            ),
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error adding the user: {e}")
+        raise (e)
+    finally:
+        cursor.close()

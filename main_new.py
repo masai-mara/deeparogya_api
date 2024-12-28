@@ -50,6 +50,7 @@ from table_operations import updateSignInTime
 from table_operations import getAccountPassword
 from table_operations import addMessage
 from table_operations import getUserDetails
+from table_operations import addUser
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -398,6 +399,7 @@ async def signup(data: dict):
         data["hashed_password"] = generate_password_hash(password)
         data["dated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         await signupUser(data)
+        await addUser(data)
         return JSONResponse(
             content={"msg": "User signedup successfully", "status_code": 200}
         )
