@@ -54,9 +54,9 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from werkzeug.security import generate_password_hash, check_password_hash
 
-os.environ[
-    "OPENAI_API_KEY"
-] = "sk-a07Vs0y8Wxq2CY-NuI7ztLwqWc2C8QIKM6QNfznmxNT3BlbkFJlDQ4-KJBy3aFkEPUZfOS0Mm_EeeE2oTjjQPpLGEyUA"
+os.environ["OPENAI_API_KEY"] = (
+    "sk-a07Vs0y8Wxq2CY-NuI7ztLwqWc2C8QIKM6QNfznmxNT3BlbkFJlDQ4-KJBy3aFkEPUZfOS0Mm_EeeE2oTjjQPpLGEyUA"
+)
 
 import logging
 
@@ -168,6 +168,7 @@ app.add_middleware(
 # Define a fixed output directory for temporary images
 output_dir = "temp_imagess"
 os.makedirs(output_dir, exist_ok=True)  # Create directory if it doesn't exist
+
 
 # Helper function to encode image as base64
 def encode_image(image_path: str) -> str:
@@ -437,7 +438,6 @@ async def login(data: dict):
                 "id": id,
                 "email_id": email_id,
                 "phone_number": phone_number,
-                "password": password,
                 "registration_timestamp": registration_timestamp,
                 "last_login_timestamp": last_login_timestamp,
                 "active_session_token": active_session_token,
