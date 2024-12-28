@@ -49,6 +49,7 @@ from table_operations import signupUser
 from table_operations import updateSignInTime
 from table_operations import getAccountPassword
 from table_operations import addMessage
+from table_operations import getUserDetails
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -411,8 +412,45 @@ async def login(data: dict):
         stored_password = await getAccountPassword(email)
         if check_password_hash(stored_password, password):
             await updateSignInTime(email)
+            user_details = await getUserDetails(email)
+            (
+                hospital_id,
+                id,
+                email_id,
+                phone_number,
+                password,
+                registration_timestamp,
+                last_login_timestamp,
+                active_session_token,
+                active,
+                session_ends,
+                name,
+            ) = user_details
+            # Convert timedelta to timestamp
+            if user_details[5] is not None:
+                registration_timestamp = (
+                    user_details[5].days * 24 * 60 * 60
+                ) + user_details[5].seconds
+            # Create a dictionary to store the user details
+            user_details_dict = {
+                "hospital_id": hospital_id,
+                "id": id,
+                "email_id": email_id,
+                "phone_number": phone_number,
+                "password": password,
+                "registration_timestamp": registration_timestamp,
+                "last_login_timestamp": last_login_timestamp,
+                "active_session_token": active_session_token,
+                "active": active,
+                "session_ends": session_ends,
+                "name": name,
+            }
             return JSONResponse(
-                content={"msg": "User signedin successfully", "status_code": 200}
+                content={
+                    "msg": "User signedin successfully",
+                    "user_details": user_details_dict,
+                    "status_code": 200,
+                }
             )
     except Exception as e:
         logger.error(f"Error signing in the user: {e}")

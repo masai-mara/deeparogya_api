@@ -302,3 +302,22 @@ async def addMessage(data: dict):
         raise (e)
     finally:
         cursor.close()
+
+
+async def getUserDetails(email: str) -> dict:
+    """
+    Returns details of a user.
+    Args:
+        email: Registered email of the user at signup.
+    Raises:
+        Exception: If an error occurs during the get password process.
+    """
+    cursor = db.cursor()
+    try:
+        cursor.execute("SELECT * FROM User WHERE email_id = %s", (email,))
+        user = cursor.fetchone()
+        return user
+    except Exception as e:
+        raise (e)
+    finally:
+        cursor.close()
