@@ -391,6 +391,9 @@ async def signup(data: dict):
             ]
         ):
             raise HTTPException(status_code=400, detail="All data is required")
+        user_details = await getUserDetails(data["email"])
+        if user_details is not None:
+            raise HTTPException(status_code=400, detail="User is already registered")
         password = data["password"]
         data["hashed_password"] = generate_password_hash(password)
         data["dated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -400,7 +403,9 @@ async def signup(data: dict):
         )
     except Exception as e:
         logger.error(f"Error signing up the user: {e}")
-        raise HTTPException(status_code=500, detail="Error processing the request.")
+        raise HTTPException(
+            status_code=500, detail=f"Error processing the request: {str(e)}"
+        )
 
 
 @app.post("/login")
